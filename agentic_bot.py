@@ -19,43 +19,6 @@ class BrastelAgenticBot:
             "about": {"file": "about_brastel.md", "desc": "Company history, license details, and office location."}
         }
 
-    def _triage_query(self, user_query: str, model_name: str) -> List[str]:
-        """PASS 1: Identify which skills are needed."""
-        skill_descriptions = "\n".join([f"- {k}: {v['desc']}" for k, v in self.skills.items()])
-        
-        triage_prompt = f"""
-Analyze the user query and identify ALL relevant documentation skills needed to provide a 100% accurate answer.
-Be inclusive: if a query might need information from multiple documents, list them all.
-Return ONLY the skill names as a comma-separated list. If it is just a general greeting or non-Brastel question, return 'none'.
-
-User Query: "{user_query}"
-
-Available Skills:
-{skill_descriptions}
-"""
-        response = self.client.chat.completions.create(
-            model=model_name,
-            messages=[{"role": "system", "content": "You are a triage agent. Output only skill names."},
-                      {"role": "user", "content": triage_prompt}],
-            temperature=0,
-            extra_body={"chat_template_kwargs": {"enable_thinking": False}}
-        )
-        
-        skills_found = response.choices[0].message.content.lower().strip().split(",")
-        return [s.strip() for s in skills_found if s.strip() in self.skills]
-
-    def _load_skills(self, skill_names: List[str]) -> str:
-        """Load the full content of the selected skills."""
-        context = ""
-        for name in skill_names:
-            file_path = self.skills[name]["file"]
-            try:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    context += f"\n\n--- DOCUMENT: {file_path} ---\n{f.read()}"
-            except FileNotFoundError:
-                continue
-        return context
-
     def _estimate_tokens(self, text: str) -> int:
         """Rough estimate of token count (4 chars = 1 token)."""
         return len(text) // 4
@@ -83,12 +46,60 @@ Conversation:
         summary = response.choices[0].message.content.strip()
         return [{"role": "system", "content": f"Previous conversation summary: {summary}"}]
 
+    def _triage_query(self, user_query: str, model_name: str) -> List[str]:
+        """PASS 1: Identify which skills are needed (Fast, specialized call)."""
+        skill_descriptions = "\n".join([f"- {k}: {v['desc']}" for k, v in self.skills.items()])
+        
+        triage_prompt = f"""
+Identify which skills match this query. 
+Skills: {", ".join(self.skills.keys())}
+
+Query: "{user_query}"
+Output only the skill names:"""
+        response = self.client.chat.completions.create(
+            model=model_name,
+            messages=[{"role": "system", "content": "You are a specialized triage agent. Your ONLY job is to output a comma-separated list of skill names from the available list. NEVER provide explanations, thoughts, or greetings. If no skill applies, output only 'none'."},
+                      {"role": "user", "content": triage_prompt}],
+            temperature=0,
+            max_tokens=100,
+            extra_body={"chat_template_kwargs": {"enable_thinking": False}}
+        )
+        
+        raw_output = response.choices[0].message.content.lower().strip()
+        print(f"DEBUG: Triage AI returned: '{raw_output}'")
+        
+        # Robust parsing: check if any skill key is present in the raw output
+        found = []
+        for skill_key in self.skills.keys():
+            if skill_key in raw_output:
+                found.append(skill_key)
+        
+        return found if found else ["none"]
+
+    def _load_skills(self, skill_names: List[str]) -> str:
+        """Load the full content of the selected skills."""
+        context = ""
+        for name in skill_names:
+            file_path = self.skills[name]["file"]
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    context += f"\n\n--- DOCUMENT: {name} ---\n{f.read()}"
+            except FileNotFoundError:
+                continue
+        return context
+
     def ask(self, user_query: str, model_name: str = "local-model", history: List[dict] = None):
-        """Hybrid Agentic RAG: Triage -> Read-on-Demand -> Answer."""
+        """High-Performance Triage RAG."""
         if history is None:
             history = []
             
-        # 1. Triage (Which documents do we need?)
+        # 1. Token Management (32k limit)
+        full_history_text = "".join([m["content"] for m in history])
+        if self._estimate_tokens(full_history_text) > 32000:
+            history = self._compress_history(history, model_name)
+
+        # 2. Triage (Which documents do we need?)
+        # Use context for triage if query is short
         contextual_query = user_query
         if len(history) >= 2:
             last_user_msg = history[-2]["content"] if history[-2]["role"] == "user" else ""
@@ -96,18 +107,13 @@ Conversation:
             
         needed_skills = self._triage_query(contextual_query, model_name)
         
-        # 2. Read selected skills
+        # 3. Read selected skills
         if not needed_skills or "none" in needed_skills:
-            print("⚠️ No specific documentation matched. Loading general knowledge base for safety.")
+            print("⚠️ No specific documentation matched. Loading general knowledge base.")
             context = self._load_skills(["fees_rates"])
         else:
             print(f"🔄 AI is reading documentation for: {', '.join(needed_skills)}")
             context = self._load_skills(needed_skills)
-
-        # 3. Token Management (32k limit)
-        full_history_text = "".join([m["content"] for m in history])
-        if self._estimate_tokens(full_history_text) > 32000:
-            history = self._compress_history(history, model_name)
 
         # 4. Answer Generation
         system_prompt = f"""
@@ -115,17 +121,15 @@ You are the official Brastel Remit AI Support Assistant.
 Your ONLY source of truth is the provided SOURCE DOCUMENTATION.
 
 CRITICAL RULES:
-1. STRICT GROUNDING: You MUST NOT use your own knowledge or training data to answer questions about fees, rates, limits, or procedures. If the exact answer is not in the SOURCE DOCUMENTATION below, you MUST state: "I'm sorry, I don't have the specific information for that. Please contact our support team at 0120-983-891 or visit our website."
-2. NO HALLUCINATION: Never invent numbers, percentages, or dates.
-3. ADMIT IGNORANCE: It is better to say "I don't know" or refer to support than to give a wrong answer.
-4. CONCISENESS: Be brief and direct. Do not repeat the same information.
-5. LANGUAGE: Match the user's language.
-6. Tone: Professional and helpful.
-7. FOLLOW-UP QUESTIONS: At the end of your response, always provide 2-3 extremely concise follow-up questions (maximum 3-5 words) written from the USER'S perspective (e.g., "Check rates", "How to register?", "Update my ID"). Format them exactly like this:
+1. STRICT GROUNDING: Use ONLY the provided SOURCE DOCUMENTATION to answer. If the answer is not there, ask the user to contact support at 0120-983-891.
+2. NO HALLUCINATION: Never invent numbers or requirements.
+3. CONCISENESS: Be brief and direct.
+4. LANGUAGE: Match the user's language.
+5. FOLLOW-UP QUESTIONS: At the end of your response, always provide 2-3 extremely concise follow-up questions (3-5 words) written FROM THE CUSTOMER'S PERSPECTIVE (e.g., "What are the fees?", "How to register?"). Format them exactly like this:
 Questions:
-- Follow up question 1
-- Follow up question 2
-- Follow up question 3
+- Question 1
+- Question 2
+- Question 3
 
 --- SOURCE DOCUMENTATION ---
 {context}
@@ -133,8 +137,6 @@ Questions:
 """
         messages = [{"role": "system", "content": system_prompt}]
         messages.extend(history)
-        
-        # Add current query if not already in history
         if not history or history[-1]["content"] != user_query:
             messages.append({"role": "user", "content": user_query})
 
@@ -146,10 +148,9 @@ Questions:
             extra_body={"chat_template_kwargs": {"enable_thinking": False}}
         )
         
-        msg_data = response.choices[0].message.model_dump()
-        content = msg_data.get('content', '')
+        content = response.choices[0].message.content or ""
         
-        # Clean up any residual tags
+        # Clean up tags
         content = re.sub(r'<thought>.*?</thought>', '', content, flags=re.DOTALL)
         content = re.sub(r'Thinking Process:.*?\n', '', content)
         
@@ -159,28 +160,25 @@ Questions:
             parts = content.split("Questions:")
             answer = parts[0].strip()
             questions_part = parts[1].strip()
-            
-            # More robust parsing for different bullet styles
             for line in questions_part.split("\n"):
                 line = line.strip()
-                # Matches "- Question", "* Question", "1. Question", etc.
                 match = re.match(r'^(?:[-*•]|\d+\.)\s*(.+)$', line)
                 if match:
-                    follow_ups.append(match.group(1).strip())
+                    follow_ups.append(match.group(1).strip(" []\"'"))
         else:
             answer = content.strip()
 
         return {
             "answer": answer,
-            "follow_ups": follow_ups[:3] # Limit to 3
+            "follow_ups": follow_ups[:3]
         }
 
 if __name__ == "__main__":
     # LOCAL TEST CONFIG
     CONFIG = {
-        "baseURL": "http://192.168.10.83:8000/v1",
+        "baseURL": "http://192.168.40.76:1234/v1",
         "apiKey": "omlx-z3phyzfx0gs0t2hy",
-        "model": "Qwen3.5-4B-MLX-8bit"
+        "model": "qwen-3.5-4b"
     }
 
     bot = BrastelAgenticBot([], CONFIG["baseURL"], CONFIG["apiKey"])
