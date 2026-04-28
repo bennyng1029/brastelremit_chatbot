@@ -5,103 +5,113 @@ from typing import List
 
 class BrastelAgenticBot:
     def __init__(self, kb_files: List[str], base_url: str, api_key: str):
-        self.kb_files = kb_files
-        self.client = openai.OpenAI(
-            base_url=base_url,
-            api_key=api_key
-        )
-        self.full_context = self._load_all_kbs()
+        self.client = openai.OpenAI(base_url=base_url, api_key=api_key)
+        
+        # Skill definitions for Read-on-Demand
+        self.skills = {
+            "registration": {"file": "registration_guide.md", "desc": "Steps to register, documents needed, and verification time."},
+            "fees_rates": {"file": "knowledge_base.md", "desc": "Current exchange rates and transfer fee tiers."},
+            "sending": {"file": "sending_money.md", "desc": "How to send money, limits, and delivery times."},
+            "deposit": {"file": "deposit_locations.md", "desc": "Where and how to deposit money (JP Bank, Lawson, etc.)."},
+            "partners": {"file": "partnership_network.md", "desc": "List of payout banks and agents in Philippines and Vietnam."},
+            "legal": {"file": "legal_compliance.md", "desc": "AML policies, My Number requirements, and ID updates."},
+            "cards": {"file": "card_management.md", "desc": "Difference between Yucho and Remit cards, and card fees."},
+            "about": {"file": "about_brastel.md", "desc": "Company history, license details, and office location."}
+        }
 
-    def _load_all_kbs(self):
-        """Reads and combines all markdown knowledge base files."""
-        combined_content = ""
-        for file_path in self.kb_files:
+    def _triage_query(self, user_query: str, model_name: str) -> List[str]:
+        """PASS 1: Identify which skills are needed."""
+        skill_descriptions = "\n".join([f"- {k}: {v['desc']}" for k, v in self.skills.items()])
+        
+        triage_prompt = f"""
+Identify which documentation skills are needed to answer this user query.
+Return ONLY the skill names as a comma-separated list. If none apply, return 'none'.
+
+User Query: "{user_query}"
+
+Available Skills:
+{skill_descriptions}
+"""
+        response = self.client.chat.completions.create(
+            model=model_name,
+            messages=[{"role": "system", "content": "You are a triage agent. Output only skill names."},
+                      {"role": "user", "content": triage_prompt}],
+            temperature=0,
+            extra_body={"chat_template_kwargs": {"enable_thinking": False}}
+        )
+        
+        skills_found = response.choices[0].message.content.lower().strip().split(",")
+        return [s.strip() for s in skills_found if s.strip() in self.skills]
+
+    def _load_skills(self, skill_names: List[str]) -> str:
+        """Load the full content of the selected skills."""
+        context = ""
+        for name in skill_names:
+            file_path = self.skills[name]["file"]
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
-                    combined_content += f"\n\n--- SOURCE: {os.path.basename(file_path)} ---\n"
-                    combined_content += f.read()
+                    context += f"\n\n--- DOCUMENT: {file_path} ---\n{f.read()}"
             except FileNotFoundError:
-                print(f"Warning: {file_path} not found.")
-        return combined_content
+                continue
+        return context
 
-    def get_system_prompt(self):
-        """Constructs a direct system prompt for speed."""
-        return f"""
+    def ask(self, user_query: str, model_name: str = "local-model"):
+        """Hybrid Agentic RAG: Triage -> Read-on-Demand -> Answer."""
+        
+        # 1. Triage (Which documents do we need?)
+        needed_skills = self._triage_query(user_query, model_name)
+        
+        # 2. Read selected skills
+        if not needed_skills or "none" in needed_skills:
+            context = "General assistance needed. Use available knowledge."
+        else:
+            print(f"🔄 AI is reading documentation for: {', '.join(needed_skills)}")
+            context = self._load_skills(needed_skills)
+
+        # 3. Answer Generation
+        system_prompt = f"""
 You are the official Brastel Remit AI Support Assistant.
-Your goal is to answer questions using ONLY the information in the provided SOURCE material.
+Use the provided SOURCE DOCUMENTATION to answer the user accurately.
 
 RULES:
-1. Grounding: If the answer is not in the SOURCE material, say: "I'm sorry, I don't have that information in my current documentation. Please contact Brastel Support at 0120-983-891."
-2. Accuracy: Never hallucinate fees, limits, or document requirements.
-3. Language: Respond in the same language the user uses.
+1. Accuracy: Never hallucinate fees, limits, or requirements.
+2. Grounding: If the answer is not in the source, ask them to contact support at 0120-983-891.
+3. Language: Match the user's language.
 4. Tone: Professional and helpful.
 
---- SOURCE MATERIAL ---
-{self.full_context}
---- END OF SOURCE MATERIAL ---
+--- SOURCE DOCUMENTATION ---
+{context}
+--- END OF SOURCE DOCUMENTATION ---
 """
-
-    def ask(self, user_query, model_name="local-model"):
-        """Sends the query to the local LLM server with a context limit check."""
-        system_prompt = self.get_system_prompt()
-        total_length = len(system_prompt) + len(user_query)
-
-        # 4k Token Limit Check (Approx 16,000 characters)
-        if total_length > 16000:
-            return "Sorry, we might need some assistant, the context window exceeds 4k limit."
-
-        try:
-            response = self.client.chat.completions.create(
-                model=model_name,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_query}
-                ],
-                temperature=0.1,
-                max_tokens=1000,
-                extra_body={"chat_template_kwargs": {"enable_thinking": False}}
-            )
-            
-            # Convert response to dictionary to handle non-standard fields like 'reasoning_content'
-            msg_data = response.choices[0].message.model_dump()
-            content = msg_data.get('content', '')
-            
-            # Final safety cleanup for any leftover thinking tags
-            content = re.sub(r'<thought>.*?</thought>', '', content, flags=re.DOTALL)
-            content = re.sub(r'Thinking Process:.*?\n', '', content)
-            
-            return content.strip()
-        except Exception as e:
-            return f"Error connecting to LLM: {str(e)}"
+        response = self.client.chat.completions.create(
+            model=model_name,
+            messages=[{"role": "system", "content": system_prompt},
+                      {"role": "user", "content": user_query}],
+            temperature=0.1,
+            max_tokens=1000,
+            extra_body={"chat_template_kwargs": {"enable_thinking": False}}
+        )
+        
+        msg_data = response.choices[0].message.model_dump()
+        content = msg_data.get('content', '')
+        
+        # Clean up any residual tags
+        content = re.sub(r'<thought>.*?</thought>', '', content, flags=re.DOTALL)
+        content = re.sub(r'Thinking Process:.*?\n', '', content)
+        
+        return content.strip()
 
 if __name__ == "__main__":
-    # USER CONFIGURATION
-    LOCAL_CONFIG = {
+    # LOCAL TEST CONFIG
+    CONFIG = {
         "baseURL": "http://192.168.10.83:8000/v1",
-        "apiKey": "omlx-z3phyzfx0gs0t2hy"
+        "apiKey": "omlx-z3phyzfx0gs0t2hy",
+        "model": "Qwen3.5-4B-MLX-8bit"
     }
-    
-    KNOWLEDGE_FILES = [
-        "knowledge_base.md",
-        "registration_guide.md",
-        "sending_money.md",
-        "deposit_locations.md"
-    ]
 
-    bot = BrastelAgenticBot(
-        kb_files=KNOWLEDGE_FILES,
-        base_url=LOCAL_CONFIG["baseURL"],
-        api_key=LOCAL_CONFIG["apiKey"]
-    )
-    
-    print("\n🚀 Brastel Agentic Bot is Ready (Connected to Local LLM)")
-    print("-" * 50)
-    
+    bot = BrastelAgenticBot([], CONFIG["baseURL"], CONFIG["apiKey"])
+    print("Welcome to the Hybrid Agentic Bot. Type 'exit' to quit.")
     while True:
-        user_input = input("\nYou: ").strip()
-        if user_input.lower() in ['exit', 'quit']:
-            break
-        
-        print("Bot is thinking...")
-        answer = bot.ask(user_input)
-        print(f"\nAssistant: {answer}")
+        q = input("\nYou: ")
+        if q.lower() == 'exit': break
+        print(bot.ask(q, CONFIG["model"]))
