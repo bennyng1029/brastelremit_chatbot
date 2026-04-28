@@ -121,7 +121,8 @@ Questions:
                 tools=tools,
                 tool_choice="auto",
                 temperature=0.0,
-                max_tokens=1000
+                max_tokens=1000,
+                extra_body={"chat_template_kwargs": {"enable_thinking": False}}
             )
             
             msg = response.choices[0].message
