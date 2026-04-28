@@ -53,7 +53,8 @@ Be extremely concise.
                     {"role": "user", "content": user_query}
                 ],
                 temperature=0.1,
-                max_tokens=500 # Limit output for speed
+                max_tokens=500,
+                stop=["Thinking Process:", "Thought:", "Analysis:"] # Force-stop reasoning headers
             )
             return response.choices[0].message.content
         except Exception as e:
