@@ -61,14 +61,13 @@ RULES:
                 max_tokens=1000 # Increased to allow for internal thinking + answer
             )
             
-            content = response.choices[0].message.content
+            # Convert response to dictionary to handle non-standard fields like 'reasoning_content'
+            msg_data = response.choices[0].message.model_dump()
+            content = msg_data.get('content', '')
             
-            # Filter out <thought> tags (common in reasoning models)
+            # Final safety cleanup for any leftover thinking tags
             content = re.sub(r'<thought>.*?</thought>', '', content, flags=re.DOTALL)
-            
-            # Filter out "Thinking Process:" or "Analysis:" blocks
             content = re.sub(r'Thinking Process:.*?\n', '', content)
-            content = re.sub(r'Analysis:.*?\n', '', content)
             
             return content.strip()
         except Exception as e:
