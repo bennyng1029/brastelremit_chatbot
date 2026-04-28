@@ -4,6 +4,7 @@ const closeChat = document.getElementById('close-chat');
 const sendBtn = document.getElementById('send-btn');
 const userInput = document.getElementById('user-input');
 const chatMessages = document.getElementById('chat-messages');
+let chatHistory = []; // Local history for context
 
 // Toggle Chat
 chatBubble.addEventListener('click', () => {
@@ -22,6 +23,7 @@ function sendMessage() {
     if (!text) return;
 
     addMessage(text, 'user');
+    chatHistory.push({ role: 'user', content: text });
     userInput.value = '';
     
     // Simulate thinking
@@ -38,17 +40,24 @@ userInput.addEventListener('keypress', (e) => {
 function addMessage(text, sender, isHtml = false) {
     const msgDiv = document.createElement('div');
     msgDiv.className = `message ${sender}`;
-    if (isHtml) {
-        msgDiv.innerHTML = text;
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'content';
+    
+    if (isHtml || sender === 'bot') {
+        // Use marked for bot messages to support Markdown
+        contentDiv.innerHTML = sender === 'bot' && !isHtml ? marked.parse(text) : text;
     } else {
-        msgDiv.textContent = text;
+        contentDiv.textContent = text;
     }
+    
+    msgDiv.appendChild(contentDiv);
     chatMessages.appendChild(msgDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 function sendQuickAction(action) {
     addMessage(action, 'user');
+    chatHistory.push({ role: 'user', content: action });
     setTimeout(() => processQuery(action), 600);
 }
 
@@ -64,11 +73,24 @@ function processQuery(query) {
     fetch('/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: query })
+        body: JSON.stringify({ 
+            query: query,
+            history: chatHistory 
+        })
     })
     .then(res => res.json())
     .then(data => {
         addMessage(data.answer, 'bot');
+        chatHistory.push({ role: 'assistant', content: data.answer });
+        
+        // Keep history manageable
+        if (chatHistory.length > 10) chatHistory = chatHistory.slice(-10);
+
+        if (data.follow_ups && data.follow_ups.length > 0) {
+            setTimeout(() => {
+                addQuickActions(data.follow_ups);
+            }, 500);
+        }
     })
     .catch(err => {
         addMessage("Sorry, I'm having trouble connecting to my brain. Is the server running?", 'bot');

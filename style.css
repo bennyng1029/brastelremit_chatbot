@@ -192,6 +192,26 @@ main p {
     border-bottom-right-radius: 4px;
 }
 
+/* Markdown Styling in Bot Messages */
+.message.bot .content ul, .message.bot .content ol {
+    margin-left: 1.2rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.message.bot .content p {
+    margin-bottom: 0.8rem;
+}
+
+.message.bot .content p:last-child {
+    margin-bottom: 0;
+}
+
+.message.bot .content b, .message.bot .content strong {
+    font-weight: 600;
+    color: var(--primary-blue);
+}
+
 /* Quick Actions */
 .quick-actions {
     display: flex;

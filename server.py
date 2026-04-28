@@ -42,6 +42,7 @@ def ask():
     """API endpoint for the chatbot logic."""
     data = request.json
     user_query = data.get('query', '')
+    history = data.get('history', [])
     
     if not user_query:
         return jsonify({"error": "No query provided"}), 400
@@ -49,15 +50,18 @@ def ask():
     # Use the specific model available on your server
     MODEL_NAME = "Qwen3.5-4B-MLX-8bit"
     
-    print(f"User Asked: {user_query} (Model: {MODEL_NAME})")
-    response = bot.ask(user_query, model_name=MODEL_NAME)
-    return jsonify({"answer": response})
+    print(f"User Asked: {user_query} (History Length: {len(history)})")
+    result = bot.ask(user_query, model_name=MODEL_NAME, history=history)
+    return jsonify({
+        "answer": result["answer"],
+        "follow_ups": result["follow_ups"]
+    })
 
 if __name__ == '__main__':
     print("\n" + "="*60)
-    print("🚀 BRASTEL CHATBOT SERVER IS RUNNING")
-    print(f"📂 Serving files from: {BASE_DIR}")
-    print("👉 URL: http://localhost:5000")
+    print("BRASTEL CHATBOT SERVER IS RUNNING")
+    print(f"FILES: {BASE_DIR}")
+    print("URL: http://localhost:5000")
     print("="*60 + "\n")
     # Using host='0.0.0.0' so it's accessible on your local network
     app.run(host='0.0.0.0', port=5000, debug=True)
