@@ -24,16 +24,10 @@ class BrastelAgenticBot:
         return combined_content
 
     def get_system_prompt(self):
-        """Constructs the system prompt with the full knowledge base."""
+        """Constructs a direct system prompt for speed."""
         return f"""
-You are the official Brastel Remit AI Support Assistant.
-Your goal is to answer questions using ONLY the information in the provided SOURCE material.
-
-RULES:
-1. Grounding: If the answer is not in the SOURCE material, say: "I'm sorry, I don't have that information in my current documentation. Please contact Brastel Support at 0120-983-891."
-2. Accuracy: Never hallucinate fees, limits, or document requirements.
-3. Language: Respond in the same language the user uses.
-4. Tone: Professional and helpful.
+You are the Brastel AI Assistant. Answer accurately using ONLY the SOURCE MATERIAL below.
+Be concise. Do not explain your reasoning. Just provide the answer.
 
 --- SOURCE MATERIAL ---
 {self.full_context}
@@ -41,15 +35,23 @@ RULES:
 """
 
     def ask(self, user_query, model_name="local-model"):
-        """Sends the query to the local LLM server."""
+        """Sends the query to the local LLM server with a context limit check."""
+        system_prompt = self.get_system_prompt()
+        total_length = len(system_prompt) + len(user_query)
+
+        # 4k Token Limit Check (Approx 16,000 characters)
+        if total_length > 16000:
+            return "Sorry, we might need some assistant, the context window exceeds 4k limit."
+
         try:
             response = self.client.chat.completions.create(
                 model=model_name,
                 messages=[
-                    {"role": "system", "content": self.get_system_prompt()},
+                    {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_query}
                 ],
-                temperature=0.1 # High precision
+                temperature=0.1,
+                max_tokens=500 # Limit output for speed
             )
             return response.choices[0].message.content
         except Exception as e:
