@@ -35,7 +35,6 @@ RULES:
 2. Accuracy: Never hallucinate fees, limits, or document requirements.
 3. Language: Respond in the same language the user uses.
 4. Tone: Professional and helpful.
-5. NO REASONING: Do NOT include any "Thinking Process", "Thought", or "Analysis" sections. Start your response IMMEDIATELY with the final answer.
 
 --- SOURCE MATERIAL ---
 {self.full_context}
@@ -59,7 +58,8 @@ RULES:
                     {"role": "user", "content": user_query}
                 ],
                 temperature=0.1,
-                max_tokens=1000 # Increased to allow for internal thinking + answer
+                max_tokens=1000,
+                extra_body={"enable_thinking": False} # The correct API parameter to turn off reasoning
             )
             
             # Convert response to dictionary to handle non-standard fields like 'reasoning_content'
