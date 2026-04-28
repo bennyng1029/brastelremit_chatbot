@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brastel Remit AI Assistant</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Background placeholder to simulate website -->
+    <div class="site-preview">
+        <header>
+            <div class="logo">Brastel Remit</div>
+            <nav>
+                <span>Rates</span>
+                <span>How to Send</span>
+                <span>Login</span>
+            </nav>
+        </header>
+        <main>
+            <h1>International Money Transfer <br>Made Simple.</h1>
+            <p>Fast, secure, and affordable transfers from Japan to the world.</p>
+        </main>
+    </div>
+
+    <!-- Chat Widget -->
+    <div id="chat-container" class="chat-container hidden">
+        <div class="chat-header">
+            <div class="header-info">
+                <div class="status-dot"></div>
+                <div>
+                    <h3>Brastel AI</h3>
+                    <p>Typically replies instantly</p>
+                </div>
+            </div>
+            <button id="close-chat"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        
+        <div id="chat-messages" class="chat-messages">
+            <div class="message bot">
+                <div class="content">
+                    Hello! I'm your Brastel AI assistant. How can I help you send money today?
+                </div>
+            </div>
+            <div class="quick-actions">
+                <button class="action-btn" onclick="sendQuickAction('What are the rates?')">Check Rates</button>
+                <button class="action-btn" onclick="sendQuickAction('How to register?')">KYC Help</button>
+                <button class="action-btn" onclick="sendQuickAction('Transfer Status')">Status</button>
+            </div>
+        </div>
+
+        <div class="chat-input-area">
+            <input type="text" id="user-input" placeholder="Ask about rates, fees, or KYC...">
+            <button id="send-btn"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <!-- Floating Bubble -->
+    <button id="chat-bubble" class="chat-bubble">
+        <i class="fa-solid fa-comments"></i>
+    </button>
+
+    <script src="app.js"></script>
+</body>
+</html>

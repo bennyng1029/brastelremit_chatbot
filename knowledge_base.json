@@ -1,0 +1,33 @@
+{
+  "exchange_rates": {
+    "PHP": 0.38,
+    "VND": 165.20,
+    "IDR": 108.50,
+    "INR": 0.55,
+    "NPR": 0.88
+  },
+  "fees": [
+    { "min": 1, "max": 10000, "fee": 480 },
+    { "min": 10001, "max": 30000, "fee": 780 },
+    { "min": 30001, "max": 100000, "fee": 1280 },
+    { "min": 100001, "max": 800000, "fee": 1480 }
+  ],
+  "faq": [
+    {
+      "question": "How long does registration take?",
+      "answer": "Account verification usually takes up to 3 business days after you submit all required documents via the Brastel Remit App."
+    },
+    {
+      "question": "What documents do I need for KYC?",
+      "answer": "You need a valid ID (Resident Card, My Number Card, or Driver's License) and your My Number (Individual Number) document."
+    },
+    {
+      "question": "Where can I deposit money?",
+      "answer": "You can deposit funds at Japan Post Bank ATMs, Lawson Bank ATMs, or via FamilyMart using your Yucho Deposit Card."
+    },
+    {
+      "question": "What is the maximum transfer limit?",
+      "answer": "The maximum transfer limit is 800,000 JPY per transaction and 1,000,000 JPY per day."
+    }
+  ]
+}
