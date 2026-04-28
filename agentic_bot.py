@@ -1,5 +1,6 @@
 import os
 import openai
+import re
 from typing import List
 
 class BrastelAgenticBot:
@@ -26,10 +27,14 @@ class BrastelAgenticBot:
     def get_system_prompt(self):
         """Constructs a direct system prompt for speed."""
         return f"""
-You are the Brastel AI Assistant. Answer accurately using ONLY the SOURCE MATERIAL below.
-CRITICAL: Do NOT include any "Thinking Process", "Thought", or "Analysis" sections. 
-CRITICAL: Do NOT explain your reasoning. Start your response IMMEDIATELY with the final answer.
-Be extremely concise.
+You are the official Brastel Remit AI Support Assistant.
+Your goal is to answer questions using ONLY the information in the provided SOURCE material.
+
+RULES:
+1. Grounding: If the answer is not in the SOURCE material, say: "I'm sorry, I don't have that information in my current documentation. Please contact Brastel Support at 0120-983-891."
+2. Accuracy: Never hallucinate fees, limits, or document requirements.
+3. Language: Respond in the same language the user uses.
+4. Tone: Professional and helpful.
 
 --- SOURCE MATERIAL ---
 {self.full_context}
@@ -53,10 +58,19 @@ Be extremely concise.
                     {"role": "user", "content": user_query}
                 ],
                 temperature=0.1,
-                max_tokens=500,
-                stop=["Thinking Process:", "Thought:", "Analysis:"] # Force-stop reasoning headers
+                max_tokens=1000 # Increased to allow for internal thinking + answer
             )
-            return response.choices[0].message.content
+            
+            content = response.choices[0].message.content
+            
+            # Filter out <thought> tags (common in reasoning models)
+            content = re.sub(r'<thought>.*?</thought>', '', content, flags=re.DOTALL)
+            
+            # Filter out "Thinking Process:" or "Analysis:" blocks
+            content = re.sub(r'Thinking Process:.*?\n', '', content)
+            content = re.sub(r'Analysis:.*?\n', '', content)
+            
+            return content.strip()
         except Exception as e:
             return f"Error connecting to LLM: {str(e)}"
 
