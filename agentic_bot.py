@@ -59,7 +59,7 @@ RULES:
                 ],
                 temperature=0.1,
                 max_tokens=1000,
-                extra_body={"enable_thinking": False} # The correct API parameter to turn off reasoning
+                extra_body={"chat_template_kwargs": {"enable_thinking": False}}
             )
             
             # Convert response to dictionary to handle non-standard fields like 'reasoning_content'
