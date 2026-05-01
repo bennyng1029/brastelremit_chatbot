@@ -27,18 +27,39 @@ This bot uses an **Agentic / Long-Context** approach:
 - Python 3.8+
 - A running local LLM server (OpenAI compatible API)
 
-### 2. Installation
+### 2. Installation & Setup
+
+#### **macOS / Linux**
+```bash
+# Clone the repository
+git clone https://github.com/bennyng1029/brastelremit_chatbot.git
+cd brastelremit_chatbot
+
+# Create and activate a virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install flask openai
+```
+
+#### **Windows**
 ```powershell
 # Clone the repository
 git clone https://github.com/bennyng1029/brastelremit_chatbot.git
 cd brastelremit_chatbot
+
+# Create and activate a virtual environment
+python -m venv venv
+.\venv\Scripts\activate
 
 # Install dependencies
 pip install flask openai
 ```
 
 ### 3. Start the Server
-```powershell
+```bash
+# Ensure your venv is active
 python server.py
 ```
 Visit **`http://localhost:5005`** in your browser to interact with the bot.
