@@ -41,7 +41,7 @@ pip install flask openai
 ```powershell
 python server.py
 ```
-Visit **`http://localhost:5000`** in your browser to interact with the bot.
+Visit **`http://localhost:5005`** in your browser to interact with the bot.
 
 ---
 

@@ -43,6 +43,7 @@ def ask():
     data = request.json
     user_query = data.get('query', '')
     history = data.get('history', [])
+    session_knowledge = data.get('session_knowledge', [])
     
     if not user_query:
         return jsonify({"error": "No query provided"}), 400
@@ -50,18 +51,19 @@ def ask():
     # Use the specific model available on your server
     MODEL_NAME = "Qwen3.5-4B-MLX-8bit"
     
-    print(f"User Asked: {user_query} (History Length: {len(history)})")
-    result = bot.ask(user_query, model_name=MODEL_NAME, history=history)
+    print(f"User Asked: {user_query} (History Length: {len(history)}, Knowledge Chunks: {len(session_knowledge)})")
+    result = bot.ask(user_query, model_name=MODEL_NAME, history=history, session_knowledge=session_knowledge)
     return jsonify({
         "answer": result["answer"],
-        "follow_ups": result["follow_ups"]
+        "follow_ups": result["follow_ups"],
+        "session_knowledge": result["session_knowledge"]
     })
 
 if __name__ == '__main__':
     print("\n" + "="*60)
     print("BRASTEL CHATBOT SERVER IS RUNNING")
     print(f"FILES: {BASE_DIR}")
-    print("URL: http://localhost:5000")
+    print("URL: http://localhost:5005")
     print("="*60 + "\n")
     # Using host='0.0.0.0' so it's accessible on your local network
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5005, debug=True)

@@ -5,6 +5,7 @@ const sendBtn = document.getElementById('send-btn');
 const userInput = document.getElementById('user-input');
 const chatMessages = document.getElementById('chat-messages');
 let chatHistory = []; // Local history for context
+let sessionKnowledge = []; // Accumulated knowledge chunks
 
 // Toggle Chat
 chatBubble.addEventListener('click', () => {
@@ -62,20 +63,14 @@ function sendQuickAction(action) {
 }
 
 function processQuery(query) {
-    // Check for Rate Inquiries (Local check for quick UI feedback)
-    const lowerQuery = query.toLowerCase();
-    if (lowerQuery.includes('rate') || lowerQuery.includes('how much') || lowerQuery.includes('fee')) {
-        // Optional: you can still show a local rate card or wait for LLM
-        // For now, let's let the LLM handle it
-    }
-
     // Call the Flask Backend
     fetch('/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
             query: query,
-            history: chatHistory 
+            history: chatHistory,
+            session_knowledge: sessionKnowledge
         })
     })
     .then(res => res.json())
@@ -83,6 +78,11 @@ function processQuery(query) {
         addMessage(data.answer, 'bot');
         chatHistory.push({ role: 'assistant', content: data.answer });
         
+        // Update accumulated knowledge
+        if (data.session_knowledge) {
+            sessionKnowledge = data.session_knowledge;
+        }
+
         // Keep history manageable
         if (chatHistory.length > 10) chatHistory = chatHistory.slice(-10);
 

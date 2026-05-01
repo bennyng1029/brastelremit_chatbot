@@ -68,15 +68,20 @@ Conversation:
         except FileNotFoundError:
             return f"Error: File {file_path} not found."
 
-    def ask(self, user_query: str, model_name: str = "local-model", history: List[dict] = None):
-        """Tool-Calling Agentic RAG."""
+    def ask(self, user_query: str, model_name: str = "local-model", history: List[dict] = None, session_knowledge: List[str] = None):
+        """Tool-Calling Agentic RAG with Session Knowledge Accumulation."""
         if history is None:
             history = []
+        if session_knowledge is None:
+            session_knowledge = []
             
         # 1. Token Management (32k limit)
-        full_history_text = "".join([m["content"] for m in history])
-        if self._estimate_tokens(full_history_text) > 32000:
+        full_context_text = "".join([m["content"] for m in history]) + "".join(session_knowledge)
+        if self._estimate_tokens(full_context_text) > 32000:
+            # If we exceed limit, we prioritize keeping history summary and maybe clearing old knowledge
+            print("🗜️ Context exceeds 32k tokens. Compressing...")
             history = self._compress_history(history, model_name)
+            # If still too large, we might need to prune session_knowledge, but for now let's just compress history
 
         # 2. Tool Definition
         tools = [
@@ -118,6 +123,15 @@ Questions:
 - Question 3
 """
         messages = [{"role": "system", "content": system_prompt}]
+        
+        # Inject Session Knowledge between system prompt and history
+        if session_knowledge:
+            knowledge_context = "\n\n".join(session_knowledge)
+            messages.append({
+                "role": "system", 
+                "content": f"The following official documentation was retrieved earlier in this session and is provided for context:\n{knowledge_context}"
+            })
+
         messages.extend(history)
         if not history or history[-1]["content"] != user_query:
             messages.append({"role": "user", "content": user_query})
@@ -148,6 +162,10 @@ Questions:
                 print(f"🛠️ AI is using tool to read: {category}")
                 doc_content = self._get_documentation(category)
                 
+                # Update session knowledge if this content isn't already there
+                if doc_content not in session_knowledge:
+                    session_knowledge.append(doc_content)
+                
                 messages.append({
                     "role": "tool",
                     "tool_call_id": tool_call.id,
@@ -177,7 +195,8 @@ Questions:
 
         return {
             "answer": answer,
-            "follow_ups": follow_ups[:3]
+            "follow_ups": follow_ups[:3],
+            "session_knowledge": session_knowledge
         }
 
 if __name__ == "__main__":
