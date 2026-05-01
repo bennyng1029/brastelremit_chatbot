@@ -14,7 +14,7 @@ A premium, AI-powered chatbot designed for **Brastel Remit** (International Mone
 
 ## 🧠 Working Logic
 This bot uses an **Agentic / Long-Context** approach:
-1. **Knowledge Extraction**: All Brastel Remit data is stored in clean Markdown files (`registration_guide.md`, `sending_money.md`, etc.).
+1. **Knowledge Extraction**: All Brastel Remit data is stored in clean Markdown files in the `knowledge/` directory (`registration_guide.md`, `sending_money.md`, etc.).
 2. **System Grounding**: When a user asks a question, the backend loads these files into the LLM's system prompt.
 3. **Reasoning Loop**: The LLM acts as an agent, scanning the source material to find the specific rule or fee tier that applies to the user's query.
 4. **Accuracy Enforcement**: If the answer isn't in the documents, the bot is programmed to say "I don't know" rather than guessing.
@@ -64,7 +64,7 @@ MODEL_NAME = "Qwen3.5-4B-MLX-8bit"             # Change to your preferred model
 ```
 
 ### Adding New Knowledge
-To expand the bot's intelligence, simply create a new `.md` file in the root directory and add its filename to the `KNOWLEDGE_FILES` list in `server.py`.
+To expand the bot's intelligence, simply create a new `.md` file in the `knowledge/` directory and add its filename to the `KNOWLEDGE_FILES` list in `server.py`.
 
 ---
 
@@ -72,4 +72,4 @@ To expand the bot's intelligence, simply create a new `.md` file in the root dir
 - `server.py`: Flask web server & API bridge.
 - `agentic_bot.py`: Core AI logic and prompt engineering.
 - `index.html` / `style.css` / `app.js`: Premium frontend chat widget.
-- `*.md`: Knowledge base source files.
+- `knowledge/`: Folder containing knowledge base source files (`*.md`, `*.json`).

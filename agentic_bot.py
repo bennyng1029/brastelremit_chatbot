@@ -9,14 +9,24 @@ class BrastelAgenticBot:
         
         # Skill definitions for Read-on-Demand
         self.skills = {
-            "registration": {"file": "registration_guide.md", "desc": "Steps to register, documents needed, and verification time."},
-            "fees_rates": {"file": "knowledge_base.md", "desc": "Current exchange rates and transfer fee tiers."},
-            "sending": {"file": "sending_money.md", "desc": "How to send money, limits, and delivery times."},
-            "deposit": {"file": "deposit_locations.md", "desc": "Where and how to deposit money (JP Bank, Lawson, etc.)."},
-            "partners": {"file": "partnership_network.md", "desc": "List of payout banks and agents in Philippines and Vietnam."},
-            "legal": {"file": "legal_compliance.md", "desc": "AML policies, My Number requirements, and ID updates."},
-            "cards": {"file": "card_management.md", "desc": "Difference between Yucho and Remit cards, and card fees."},
-            "about": {"file": "about_brastel.md", "desc": "Company history, license details, and office location."}
+            "index": {"file": "knowledge/knowledge_base.md", "desc": "Master index to find specific guides and tutorials."},
+            "app_setup": {"file": "knowledge/setup_app_install.md", "desc": "Downloading and installing the iOS and Android app."},
+            "registration_jp": {"file": "knowledge/setup_registration_jp_national.md", "desc": "Signup steps for Japanese citizens using a Driver's License."},
+            "registration_foreign": {"file": "knowledge/setup_registration_foreign_national.md", "desc": "Signup steps for foreign citizens using a Resident Card (NFC/No-NFC)."},
+            "registration_my_number": {"file": "knowledge/setup_registration_my_number.md", "desc": "Signup steps using a My Number Card."},
+            "id_update": {"file": "knowledge/setup_document_reupload.md", "desc": "How to update expired IDs or re-upload documents if rejected."},
+            "recipients": {"file": "knowledge/account_recipient_add.md", "desc": "How to add Bank, E-Wallet, bKash, or Agent pickup recipients."},
+            "send_money": {"file": "knowledge/operation_send_money.md", "desc": "Step-by-step instructions to execute a money transfer in the app."},
+            "fees_limits": {"file": "knowledge/service_fees.md", "desc": "Transfer fee tiers, maximum/minimum limits, and recipient fees."},
+            "deposit_card": {"file": "knowledge/operation_deposit_jp_bank_card.md", "desc": "Using the Brastel Yucho Card at Japan Post Bank or Lawson ATMs."},
+            "deposit_counter": {"file": "knowledge/operation_deposit_jp_bank_no_account.md", "desc": "How to deposit at bank counters without a bank account (Blue form)."},
+            "deposit_mizuho": {"file": "knowledge/operation_deposit_mizuho_atm.md", "desc": "Step-by-step tutorial for deposits at Mizuho Bank ATMs."},
+            "deposit_other": {"file": "knowledge/operation_deposit_other_banks_no_account.md", "desc": "Tutorials for MUFG, SMBC, Resona, and other bank ATMs."},
+            "service_overview": {"file": "knowledge/service_overview_benefits.md", "desc": "General benefits, safety, licensing, and quick start guide."},
+            "rewards": {"file": "knowledge/service_rewards_promo.md", "desc": "Registering promo codes, friend invites, and reward rules."},
+            "legal": {"file": "knowledge/legal_compliance.md", "desc": "AML policies, CFT framework, and My Number document requirements."},
+            "partners": {"file": "knowledge/partnership_network.md", "desc": "Payout partners and pickup locations in Philippines and Vietnam."},
+            "about": {"file": "knowledge/about_brastel.md", "desc": "Company history, license details, and office location."}
         }
 
     def _estimate_tokens(self, text: str) -> int:
@@ -96,7 +106,7 @@ You are the official Brastel Remit AI Support Assistant.
 You have access to a tool to retrieve official documentation.
 
 CRITICAL RULES:
-1. USE TOOLS: Always call 'get_documentation' before answering specific questions about fees, rates, limits, or procedures. NEVER rely on your internal knowledge for these topics.
+1. USE TOOLS: Always call 'get_documentation' before answering specific questions about fees, rates, limits, or procedures. NEVER rely on your internal knowledge for these topics. If you are unsure which category to use, call 'get_documentation' with 'index' first.
 2. STRICT GROUNDING: If the documentation does not contain the answer, tell the user to contact support at 0120-983-891.
 3. NO HALLUCINATION: Never invent numbers or requirements.
 4. CONCISENESS: Be brief and direct.

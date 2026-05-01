@@ -10,14 +10,14 @@ class BrastelHybridBot:
         
         # Define the available "Skills" (Read-on-Demand files)
         self.skills = {
-            "registration": {"file": "registration_guide.md", "desc": "Steps to register, documents needed, and verification time."},
-            "fees_rates": {"file": "knowledge_base.md", "desc": "Current exchange rates and transfer fee tiers."},
-            "sending": {"file": "sending_money.md", "desc": "How to send money, limits, and delivery times."},
-            "deposit": {"file": "deposit_locations.md", "desc": "Where and how to deposit money (JP Bank, Lawson, etc.)."},
-            "partners": {"file": "partnership_network.md", "desc": "List of payout banks and agents in Philippines and Vietnam."},
-            "legal": {"file": "legal_compliance.md", "desc": "AML policies, My Number requirements, and ID updates."},
-            "cards": {"file": "card_management.md", "desc": "Difference between Yucho and Remit cards, and card fees."},
-            "about": {"file": "about_brastel.md", "desc": "Company history, license details, and office location."}
+            "registration": {"file": "knowledge/registration_guide.md", "desc": "Steps to register, documents needed, and verification time."},
+            "fees_rates": {"file": "knowledge/knowledge_base.md", "desc": "Current exchange rates and transfer fee tiers."},
+            "sending": {"file": "knowledge/sending_money.md", "desc": "How to send money, limits, and delivery times."},
+            "deposit": {"file": "knowledge/deposit_locations.md", "desc": "Where and how to deposit money (JP Bank, Lawson, etc.)."},
+            "partners": {"file": "knowledge/partnership_network.md", "desc": "List of payout banks and agents in Philippines and Vietnam."},
+            "legal": {"file": "knowledge/legal_compliance.md", "desc": "AML policies, My Number requirements, and ID updates."},
+            "cards": {"file": "knowledge/card_management.md", "desc": "Difference between Yucho and Remit cards, and card fees."},
+            "about": {"file": "knowledge/about_brastel.md", "desc": "Company history, license details, and office location."}
         }
 
     def _triage_query(self, user_query: str) -> List[str]:

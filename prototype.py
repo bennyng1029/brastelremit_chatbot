@@ -68,5 +68,5 @@ class BrastelChatbot:
                 print(f"Bot: {answer}")
 
 if __name__ == "__main__":
-    bot = BrastelChatbot('knowledge_base.json')
+    bot = BrastelChatbot('knowledge/knowledge_base.json')
     bot.run_cli()

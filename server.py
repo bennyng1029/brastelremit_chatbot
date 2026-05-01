@@ -14,10 +14,10 @@ LOCAL_CONFIG = {
 }
 
 KNOWLEDGE_FILES = [
-    os.path.join(BASE_DIR, "knowledge_base.md"),
-    os.path.join(BASE_DIR, "registration_guide.md"),
-    os.path.join(BASE_DIR, "sending_money.md"),
-    os.path.join(BASE_DIR, "deposit_locations.md")
+    os.path.join(BASE_DIR, "knowledge/knowledge_base.md"),
+    os.path.join(BASE_DIR, "knowledge/registration_guide.md"),
+    os.path.join(BASE_DIR, "knowledge/sending_money.md"),
+    os.path.join(BASE_DIR, "knowledge/deposit_locations.md")
 ]
 
 # Initialize the Bot with absolute paths
